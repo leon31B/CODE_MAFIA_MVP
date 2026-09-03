@@ -323,3 +323,111 @@ export function evaluateWinConditions(session: GameSession): GameSession {
 
   return session;
 }
+
+/**
+ * Security Sanitizer: Filters out unrevealed roles & secret votes
+ * Enforces Security & Access Document §2.2 & §3 Row-Level Security Rules.
+ */
+export function sanitizeSessionForPlayer(session: GameSession, viewingPlayerId: string): GameSession {
+  const viewingPlayer = session.players.find(p => p.id === viewingPlayerId);
+  const isResultsPhase = session.phase === 'RESULTS';
+  const isViewingMafia = viewingPlayer?.role === 'MAFIA';
+
+  const sanitizedPlayers = session.players.map(p => {
+    // 1. Always reveal own role
+    if (p.id === viewingPlayerId) return p;
+
+    // 2. Reveal all roles at game finale
+    if (isResultsPhase) return p;
+
+    // 3. Mafia can see fellow Mafia teammates if configured
+    if (isViewingMafia && p.role === 'MAFIA') return p;
+
+    // 4. Reveal role if player was eliminated and role reveal setting is true
+    const elimination = session.eliminationHistory.find(e => e.eliminatedPlayerId === p.id);
+    if (elimination && elimination.eliminatedPlayerRole) {
+      return { ...p, role: elimination.eliminatedPlayerRole };
+    }
+
+    // 5. Hide unrevealed role from opponent payload
+    return { ...p, role: undefined };
+  });
+
+  // Filter hidden active votes during open voting round
+  const isVotingOpen = session.phase === 'VOTING';
+  const sanitizedVotes: Record<string, string | null> = {};
+
+  if (isVotingOpen) {
+    // Only return player's own vote during voting phase
+    if (session.votes[viewingPlayerId] !== undefined) {
+      sanitizedVotes[viewingPlayerId] = session.votes[viewingPlayerId];
+    }
+  } else {
+    // Reveal votes when round is closed
+    Object.assign(sanitizedVotes, session.votes);
+  }
+
+  return {
+    ...session,
+    players: sanitizedPlayers,
+    votes: sanitizedVotes
+  };
+}
+
+/**
+ * Handle Disconnections (Security & Access Document §4.2)
+ * Auto-populates abstain vote if player drops during voting round.
+ */
+export function handlePlayerDisconnect(session: GameSession, disconnectedPlayerId: string): GameSession {
+  const updatedPlayers = session.players.map(p => {
+    if (p.id === disconnectedPlayerId) {
+      return { ...p, isReady: false };
+    }
+    return p;
+  });
+
+  const updatedVotes = { ...session.votes };
+  if (session.phase === 'VOTING' && updatedVotes[disconnectedPlayerId] === undefined) {
+    updatedVotes[disconnectedPlayerId] = null; // Auto-abstain vote
+  }
+
+  return {
+    ...session,
+    players: updatedPlayers,
+    votes: updatedVotes,
+    activityFeed: [
+      ...session.activityFeed,
+      {
+        id: `act-disc-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        playerId: 'system',
+        playerName: 'System',
+        type: 'SYSTEM',
+        details: `Player connection status updated.`
+      }
+    ]
+  };
+}
+
+/**
+ * CM-026: Chat Moderation & Profanity Filter
+ * Filters messages against a configurable denylist before broadcast.
+ */
+const BANNED_TERMS = ['badword', 'abuse', 'hack', 'cheat', 'toxic'];
+
+export function filterChatMessage(text: string): { cleanText: string; isFlagged: boolean } {
+  let cleanText = text;
+  let isFlagged = false;
+
+  for (const term of BANNED_TERMS) {
+    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    if (regex.test(cleanText)) {
+      cleanText = cleanText.replace(regex, '****');
+      isFlagged = true;
+    }
+  }
+
+  return { cleanText, isFlagged };
+}
+
+

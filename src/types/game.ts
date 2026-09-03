@@ -160,3 +160,39 @@ export interface GameHistoryItem {
   durationMinutes: number;
   roundsCount: number;
 }
+
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  planTier: 'FREE' | 'TEAM' | 'ENTERPRISE';
+  seatLimit: number;
+  createdAt: string;
+}
+
+export interface Subscription {
+  id: string;
+  workspaceId: string;
+  stripeCustomerId?: string;
+  planTier: 'FREE' | 'TEAM' | 'ENTERPRISE';
+  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'TRIALING';
+  currentPeriodEnd: string;
+}
+
+export interface SandboxMetric {
+  isolationMode: 'gVisor' | 'Firecracker' | 'Isolated-VM';
+  memoryUsageMb: number;
+  cpuCores: number;
+  networkEgressBlocked: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  actorUserId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+

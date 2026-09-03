@@ -23,8 +23,8 @@ import { DiscussionPage } from './pages/DiscussionPage';
 import { VotingPage } from './pages/VotingPage';
 import { EliminationModal } from './pages/EliminationModal';
 import { ResultsPage } from './pages/ResultsPage';
-import { HistoryPage } from './pages/HistoryPage';
 import { AdminPacksPage } from './pages/AdminPacksPage';
+import { AuthModal } from './components/AuthModal';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -32,6 +32,7 @@ export const App: React.FC = () => {
   const [session, setSession] = useState<GameSession | null>(null);
   const [currentUser, setCurrentUser] = useState<Player | null>(null);
   const [isTestRunning, setIsTestRunning] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   // Initialize socket listener for real-time multiplayer
   useEffect(() => {
@@ -300,6 +301,26 @@ export const App: React.FC = () => {
         onNavigateHome={() => setCurrentPhase('DASHBOARD')}
         theme={theme}
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+        onOpenAuth={() => setIsAuthOpen(true)}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthenticate={(user) => {
+          if (!currentUser) {
+            setCurrentUser({
+              id: `user-${Date.now()}`,
+              displayName: user.displayName,
+              isAlive: true,
+              isHost: false,
+              isBot: false,
+              isReady: false,
+              avatarColor: 'bg-cyan-600',
+              stats: { bugsFixed: 0, testsRun: 0, votesCast: 0, suspicionScore: 0 }
+            });
+          }
+        }}
       />
 
       <main className="flex-1">

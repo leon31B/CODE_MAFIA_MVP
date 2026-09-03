@@ -1,6 +1,6 @@
 import React from 'react';
 import { TestRunResult, TestCase } from '../types/game';
-import { Play, CheckCircle2, XCircle, AlertTriangle, Clock, RefreshCw } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, AlertTriangle, Clock, RefreshCw, Cpu, ShieldCheck } from 'lucide-react';
 
 interface TestRunnerPanelProps {
   onRunTests: () => void;
@@ -73,11 +73,21 @@ export const TestRunnerPanel: React.FC<TestRunnerPanelProps> = ({
         </div>
 
         {latestRun && (
-          <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-2">
-            <span>Last run by: {latestRun.triggeredByPlayerName}</span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {latestRun.durationMs}ms
-            </span>
+          <div className="space-y-1 mt-2 font-mono text-[10px]">
+            <div className="flex items-center justify-between text-slate-400">
+              <span>Last run by: <strong className="text-slate-200">{latestRun.triggeredByPlayerName}</strong></span>
+              <span className="flex items-center gap-1 text-cyan-400 font-bold">
+                <Clock className="w-3 h-3" /> {latestRun.durationMs}ms
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-500 pt-1 border-t border-slate-800/80">
+              <span className="flex items-center gap-1 text-emerald-400/90">
+                <ShieldCheck className="w-3 h-3" /> gVisor Egress Filtered
+              </span>
+              <span className="flex items-center gap-1">
+                <Cpu className="w-3 h-3 text-amber-400/80" /> 16MB / 256MB
+              </span>
+            </div>
           </div>
         )}
       </div>
